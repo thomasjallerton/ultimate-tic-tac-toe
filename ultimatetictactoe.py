@@ -229,6 +229,14 @@ class BigBoard:
                         return True
         return False
 
+    def get_won_squares(self):
+        won_squares = []
+        for iter_row in range(3):
+            for iter_col in range(3):
+                if not isinstance(self.board[iter_row][iter_col], SmallBoard):
+                    won_squares.append([iter_row, iter_col])
+        return won_squares
+
 
 # -------- Random AI ----------------------
 def random_make_move(available_moves, current_board, piece):
@@ -239,7 +247,7 @@ def random_make_move(available_moves, current_board, piece):
 # -------- Don't play danger moves Heuristic AI ---------------
 def danger_heuristic_make_move(available_moves, current_board: BigBoard, piece):
     best_moves = list()
-    best_moves_score = 0
+    best_moves_score = -99999999
     danger_moves = get_danger_squares(current_board.board, piece)
     for move in available_moves:
         score = danger_heuristic(move, current_board, piece, danger_moves)
@@ -257,7 +265,7 @@ def danger_heuristic_make_move(available_moves, current_board: BigBoard, piece):
     return best_moves[random_index]
 
 
-def danger_heuristic(move, current_board, piece, danger_moves):
+def danger_heuristic(move, current_board: BigBoard, piece, danger_moves):
     copy_board: BigBoard = deepcopy(current_board)
     initial_count = copy_board.get_number_won_sub_boards()
     copy_board.set_sub_piece(move[0], move[1], move[2], move[3], piece)
@@ -280,6 +288,10 @@ def danger_heuristic(move, current_board, piece, danger_moves):
 
     if [move[2], move[3]] in danger_moves:
         score -= 20
+
+    # Decrease score if allowing opponent any move
+    if [move[2], move[3]] in current_board.get_won_squares():
+        score -= 10
 
     # add score if blocking opponent in sub board
     if isinstance(copy_board.get_sub_board(move[0], move[1]), SmallBoard):
@@ -366,6 +378,49 @@ def simple_heuristic(move, current_board, piece):
     return score
 
 
+# ---------------Monte Carlo---------------------------------------------------
+def monte_carlo_make_move(available_moves, current_board, piece):
+    move_wins = {}
+    max_count = -1
+    max_move = available_moves[0]
+    for move in available_moves:
+        move_wins[move_hash(move)] = 0
+
+    # Play many games
+    for i in range(20):
+        result = monte_carlo_play_one_game(available_moves, deepcopy(current_board), piece)
+        if result[0]:
+            move_wins[move_hash(result[1])] += 1
+            count = move_wins[move_hash(result[1])]
+            if count > max_count:
+                max_count = count
+                max_move = result[1]
+    return max_move
+
+
+def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece):
+    game_won = False
+    first_move = danger_heuristic_make_move(available_moves, current_board, piece)
+    move = first_move
+    opponent_piece = swap_turn(piece)
+    while not game_won:
+        current_board.set_sub_piece(move[0], move[1], move[2], move[3], piece)
+        if current_board.is_game_won():
+            # Player won, return won and first move
+            return [True, first_move]
+        if current_board.is_game_tied():
+            return [False, first_move]
+        opponent_possible_moves = current_board.get_next_possible_moves(move[2], move[3])
+        opponent_move = danger_heuristic_make_move(opponent_possible_moves, current_board, opponent_piece)
+        current_board.set_sub_piece(opponent_move[0], opponent_move[1], opponent_move[2], opponent_move[3], opponent_piece)
+        if current_board.is_game_won():
+            # Opponent won, return lost and first move
+            return [False, first_move]
+        if current_board.is_game_tied():
+            return [False, first_move]
+        move = danger_heuristic_make_move(current_board.get_next_possible_moves(opponent_move[2], opponent_move[3]), current_board, piece)
+
+
 # Human Player
 def human_player(available_moves, current_board, piece):
     for event in pygame.event.get():
@@ -395,6 +450,10 @@ def swap_turn(piece):
         return O_PIECE
     else:
         return X_PIECE
+
+
+def move_hash(move):
+    return int("{0}{1}{2}{3}".format(str(move[0]), str(move[1]), str(move[2]), str(move[3])))
 
 
 # -------- Main Program Loop --------------
@@ -428,6 +487,8 @@ def play_game(x_turn, o_turn):
             move = o_turn(current_available_moves, game_board, current_turn)
 
         if move != NO_PIECE:
+            if len(move) < 4:
+                print(current_turn, "could not make a move", move)
             game_board.set_sub_piece(move[0], move[1], move[2], move[3], current_turn)
 
             if game_board.is_game_won():
@@ -542,13 +603,16 @@ x_count = 0
 o_count = 0
 ties = 0
 for i in range(100):
-    winner = play_game(simple_heuristic_make_move, danger_heuristic_make_move)
-    print("Played " + str(i + 1) + " games")
+    winner = play_game(human_player, monte_carlo_make_move)
     if winner == O_PIECE:
         o_count += 1
+        winner_str = "O won!"
     elif winner == X_PIECE:
         x_count += 1
+        winner_str = "X won!"
     else:
         ties += 1
+        winner_str = "Tie!"
+    print("Played " + str(i + 1) + " games, " + winner_str)
 
 print("X Wins: " + str(x_count) + ", O Wins: " + str(o_count) + ", Ties: " + str(ties))
