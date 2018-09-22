@@ -1,20 +1,22 @@
-from copy import deepcopy
-from utilities import swap_turn
-from DangerMakeMove import danger_heuristic_make_move
 from BigBoard import BigBoard
 import multiprocessing as mp
+from RandomMakeMove import *
+from copy import deepcopy
+from utilities import swap_turn
 
 
 def monte_carlo_make_move(available_moves, current_board, piece):
     move_wins = {}
     max_count = -1
     max_move = available_moves[0]
+
     for move in available_moves:
         move_wins[move_hash(move)] = 0
 
     output = mp.Queue()
     # Play many games
-    processes = [mp.Process(None, monte_carlo_play_one_game, None, (available_moves, deepcopy(current_board), piece, output), {}) for x in range(20)]
+    processes = [mp.Process(None, monte_carlo_play_one_game, None, (available_moves, deepcopy(current_board), piece,
+                                                                    output), {}) for x in range(100)]
 
     for p in processes:
         p.start()
@@ -38,7 +40,7 @@ def monte_carlo_make_move(available_moves, current_board, piece):
 
 def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece, result):
     game_won = False
-    first_move = danger_heuristic_make_move(available_moves, current_board, piece)
+    first_move = random_make_move(available_moves, current_board, piece)
     move = first_move
     opponent_piece = swap_turn(piece)
     while not game_won:
@@ -51,8 +53,9 @@ def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece, r
             result.put([False, first_move])
             return
         opponent_possible_moves = current_board.get_next_possible_moves(move[2], move[3])
-        opponent_move = danger_heuristic_make_move(opponent_possible_moves, current_board, opponent_piece)
-        current_board.set_sub_piece(opponent_move[0], opponent_move[1], opponent_move[2], opponent_move[3], opponent_piece)
+        opponent_move = random_make_move(opponent_possible_moves, current_board, opponent_piece)
+        current_board.set_sub_piece(opponent_move[0], opponent_move[1], opponent_move[2], opponent_move[3],
+                                    opponent_piece)
         if current_board.is_game_won():
             # Opponent won, return lost and first move
             result.put([False, first_move])
@@ -60,7 +63,8 @@ def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece, r
         if current_board.is_game_tied():
             result.put([False, first_move])
             return
-        move = danger_heuristic_make_move(current_board.get_next_possible_moves(opponent_move[2], opponent_move[3]), current_board, piece)
+        move = random_make_move(current_board.get_next_possible_moves(opponent_move[2], opponent_move[3]),
+                                current_board, piece)
 
 
 def move_hash(move):
