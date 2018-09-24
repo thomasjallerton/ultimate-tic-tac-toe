@@ -4,7 +4,7 @@ from HumanPlayer import human_player
 from DangerMakeMove import danger_heuristic_make_move
 from HeuristicMonteCarloishMakeMove import heuristic_monte_carloish_make_move
 from MonteCarloMakeMove import monte_carlo_make_move
-from InlineMakeMove import adjacent_heuristic_make_move
+from InlineMakeMove import inline_heuristic_make_move
 from RandomMakeMove import random_make_move
 
 if __name__ == '__main__':
@@ -12,7 +12,7 @@ if __name__ == '__main__':
     o_count = 0
     ties = 0
     for i in range(100):
-        winner = play_game(heuristic_monte_carloish_make_move, danger_heuristic_make_move)
+        winner = play_game(human_player, inline_heuristic_make_move)
         if winner == O_PIECE:
             o_count += 1
             winner_str = "O won!"

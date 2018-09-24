@@ -2,7 +2,7 @@ from utilities import *
 from BigBoard import BigBoard
 import random
 from copy import deepcopy
-from InlineMakeMove import sub_board_adjacent_to_existing_piece
+from InlineMakeMove import inline_heuristic
 from SmallBoard import SmallBoard
 
 
@@ -29,24 +29,14 @@ def danger_heuristic_make_move(available_moves, current_board: BigBoard, piece):
 
 def danger_heuristic(move, current_board: BigBoard, piece, danger_moves: list, opponent_danger_moves: list):
     copy_board: BigBoard = deepcopy(current_board)
-    initial_count = copy_board.get_number_won_sub_boards()
     copy_board.set_sub_piece(move[0], move[1], move[2], move[3], piece)
-    after_move_count = copy_board.get_number_won_sub_boards()
 
-    if initial_count < after_move_count:
-        if is_game_won(copy_board.board):
-            score = 10000
-        elif copy_board.is_adjacent_in_line(move[0], move[1]):
-            score = 20
-        else:
-            score = 15
+    score = inline_heuristic(move, current_board, piece)
 
-        # increase score if we are winning a danger board
-        for danger in danger_moves:
-            if copy_board.board[danger[0]][danger[1]] == piece:
-                score += 10
-    else:
-        score = sub_board_adjacent_to_existing_piece(move, copy_board, piece)
+    # increase score if we are winning a danger board
+    for danger in danger_moves:
+        if copy_board.board[danger[0]][danger[1]] == piece:
+            score += 10
 
     # Decrease score if we are letting opponent play in a dangerous small board
     if [move[2], move[3]] in danger_moves:
