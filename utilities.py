@@ -1,40 +1,46 @@
 from pieces import *
 
 
-def is_game_won(board):
+def is_game_won_winner(board):
     # Check if won
     top_left_piece = board[0][0]
     if top_left_piece != NO_PIECE:
         if (top_left_piece == board[1][0]) & (
                 top_left_piece == board[2][0]):
-            return True
+            return top_left_piece
         if (top_left_piece == board[0][1]) & (
                 top_left_piece == board[0][2]):
-            return True
+            return top_left_piece
 
     middle_piece = board[1][1]
     if middle_piece != NO_PIECE:
         if (middle_piece == board[0][1]) & (
                 middle_piece == board[2][1]):
-            return True
+            return middle_piece
         if (middle_piece == board[1][0]) & (
                 middle_piece == board[1][2]):
-            return True
+            return middle_piece
         if (middle_piece == board[0][0]) & (
                 middle_piece == board[2][2]):
-            return True
+            return middle_piece
         if (middle_piece == board[2][0]) & (
                 middle_piece == board[0][2]):
-            return True
+            return middle_piece
 
     bottom_right_piece = board[2][2]
     if bottom_right_piece != NO_PIECE:
         if (bottom_right_piece == board[2][0]) & (
                 bottom_right_piece == board[2][1]):
-            return True
+            return bottom_right_piece
         if (bottom_right_piece == board[0][2]) & (
                 bottom_right_piece == board[1][2]):
-            return True
+            return bottom_right_piece
+
+    return NO_PIECE
+
+
+def is_game_won(board):
+    return is_game_won_winner(board) != NO_PIECE
 
 
 def get_danger_squares(board, piece):

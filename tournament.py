@@ -6,13 +6,16 @@ from HeuristicMonteCarloishMakeMove import heuristic_monte_carloish_make_move
 from MonteCarloMakeMove import monte_carlo_make_move
 from InlineMakeMove import inline_heuristic_make_move
 from RandomMakeMove import random_make_move
+from MinimaxMakeMove import minimax_heuristic_make_move
+from BoardStateHeuristicMakeMove import board_state_heuristic_make_move
+
 
 if __name__ == '__main__':
     x_count = 0
     o_count = 0
     ties = 0
     for i in range(100):
-        winner = play_game(human_player, inline_heuristic_make_move)
+        winner = play_game(minimax_heuristic_make_move, board_state_heuristic_make_move, False)
         if winner == O_PIECE:
             o_count += 1
             winner_str = "O won!"
