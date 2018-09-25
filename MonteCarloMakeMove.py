@@ -1,71 +1,90 @@
 from BigBoard import BigBoard
-import multiprocessing as mp
 from RandomMakeMove import *
 from copy import deepcopy
 from utilities import swap_turn
+from pieces import *
+import datetime
+from math import log, sqrt
+
+C = 1.4
+calculation_time = datetime.timedelta(milliseconds=5000)
+plays = {}
+wins = {}
 
 
 def monte_carlo_make_move(available_moves, current_board, piece):
-    move_wins = {}
-    max_count = -1
-    max_move = available_moves[0]
 
+    games = 0
+    begin = datetime.datetime.utcnow()
+
+    if not available_moves:
+        return
+    if len(available_moves) == 1:
+        return available_moves[0]
+
+    while datetime.datetime.utcnow() - begin < calculation_time:
+        monte_carlo_play_one_game(available_moves, current_board, piece)
+        games += 1
+
+    moves_states = list()
     for move in available_moves:
-        move_wins[move_hash(move)] = 0
+        copy_state: BigBoard = deepcopy(current_board)
+        copy_state.make_move(move, piece)
+        moves_states.append((move, copy_state.hash()))
 
-    output = mp.Queue()
-    # Play many games
-    processes = [mp.Process(None, monte_carlo_play_one_game, None, (available_moves, deepcopy(current_board), piece,
-                                                                    output), {}) for x in range(100)]
-
-    for p in processes:
-        p.start()
-
-    for p in processes:
-        p.join()
-
-    results = [output.get() for p in processes]
-
-    for result in results:
-        if result[0]:
-            hash_res = move_hash(result[0][1])
-            move_wins[hash_res] += 1
-            count = move_wins[hash_res]
-            if count > max_count:
-                max_count = count
-                max_move = result[0][1]
-
-    return max_move
+    percent_wins, move = max(
+        (wins.get((piece, S), 0) /
+         plays.get((piece, S), 1),
+         p)
+        for p, S in moves_states
+    )
+    return move
 
 
-def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece, result):
-    game_won = False
-    first_move = random_make_move(available_moves, current_board, piece)
-    move = first_move
-    opponent_piece = swap_turn(piece)
-    while not game_won:
-        current_board.set_sub_piece(move[0], move[1], move[2], move[3], piece)
-        if current_board.is_game_won():
-            # Player won, return won and first move
-            result.put([[True, first_move]])
-            return
-        if current_board.is_game_tied():
-            result.put([False, first_move])
-            return
-        opponent_possible_moves = current_board.get_next_possible_moves(move[2], move[3])
-        opponent_move = random_make_move(opponent_possible_moves, current_board, opponent_piece)
-        current_board.set_sub_piece(opponent_move[0], opponent_move[1], opponent_move[2], opponent_move[3],
-                                    opponent_piece)
-        if current_board.is_game_won():
-            # Opponent won, return lost and first move
-            result.put([False, first_move])
-            return
-        if current_board.is_game_tied():
-            result.put([False, first_move])
-            return
-        move = random_make_move(current_board.get_next_possible_moves(opponent_move[2], opponent_move[3]),
-                                current_board, piece)
+def monte_carlo_play_one_game(available_moves, current_board: BigBoard, piece):
+    visited_states = set()
 
+    next_moves = available_moves
+    state = deepcopy(current_board)
+    player = piece
 
-def move_hash(move):
-    return int("{0}{1}{2}{3}".format(str(move[0]), str(move[1]), str(move[2]), str(move[3])))
+    while True:
+
+        moves_states = [(p, state.get_hash_of_next_move(p, piece)) for p in next_moves]
+
+        if all(plays.get((player, S)) for p, S in moves_states):
+            # If we have stats on all of the legal moves here, use them.
+            log_total = log(sum(plays[(player, S)] for p, S in moves_states))
+            value, move = max(
+                ((wins[(player, S)] / plays[(player, S)]) +
+                 C * sqrt(log_total / plays[(player, S)]), p)
+                for p, S in moves_states
+            )
+        else:
+            move = random_make_move(next_moves, state, player)
+
+        state.make_move(move, player)
+        state_hash = state.hash()
+
+        if (player, state_hash) not in plays:
+            plays[(player, state_hash)] = 0
+            wins[(player, state_hash)] = 0
+
+        visited_states.add((player, state.hash()))
+
+        player = swap_turn(player)
+        winner = state.is_game_won_winner()
+        if winner != NO_PIECE:
+            break
+
+        if state.is_game_tied():
+            break
+
+        next_moves = state.get_next_possible_moves(move[0], move[1])
+
+    for player, state in visited_states:
+        if (player, state) not in plays:
+            continue
+        plays[(player, state)] += 1
+        if player == winner:
+            wins[(player, state)] += 1

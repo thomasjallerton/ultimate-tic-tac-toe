@@ -17,7 +17,7 @@ def heuristic_monte_carloish_make_move(available_moves, current_board, piece):
             for move in available_moves:
                 move_wins[move_hash(move)] = 0
 
-            output = mp.Queue()
+            output = mp.Queue
             # Play many games
             processes = [mp.Process(None, monte_carlo_play_one_game, None, (available_moves, deepcopy(current_board),
                                                                             piece, output), {}) for x in range(30)]

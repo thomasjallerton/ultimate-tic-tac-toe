@@ -8,14 +8,16 @@ from InlineMakeMove import inline_heuristic_make_move
 from RandomMakeMove import random_make_move
 from MinimaxMakeMove import minimax_heuristic_make_move
 from BoardStateHeuristicMakeMove import board_state_heuristic_make_move
+import multiprocessing as mp
 
 
 if __name__ == '__main__':
     x_count = 0
     o_count = 0
     ties = 0
+
     for i in range(100):
-        winner = play_game(minimax_heuristic_make_move, board_state_heuristic_make_move, False)
+        winner = play_game(random_make_move, monte_carlo_make_move, True)
         if winner == O_PIECE:
             o_count += 1
             winner_str = "O won!"

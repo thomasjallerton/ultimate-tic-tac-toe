@@ -41,3 +41,7 @@ class SmallBoard:
                     count += 1
         return count
 
+    def hash(self):
+        board = self.board
+        return str(board[0][0]) + str(board[0][1]) + str(board[0][2]) + str(board[1][0]) + str(board[1][1]) + \
+            str(board[1][2]) + str(board[2][0]) + str(board[2][1]) + str(board[2][2])

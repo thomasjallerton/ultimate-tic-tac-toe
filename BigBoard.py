@@ -8,10 +8,10 @@ class BigBoard:
         self.board = [[SmallBoard(row_iter, col_iter) for col_iter in range(3)] for row_iter in range(3)]
 
     def is_game_won(self):
-        if is_game_won(self.board):
-            return True
-        else:
-            return False
+        return is_game_won(self.board)
+
+    def is_game_won_winner(self):
+        return is_game_won_winner(self.board)
 
     def is_game_tied(self):
         for iter_row in range(3):
@@ -44,6 +44,10 @@ class BigBoard:
         self.board[outer_row][outer_col].set_piece(inner_row, inner_col, piece)
         self.set_board_piece_if_won(outer_row, outer_col, piece)
 
+    def make_move(self, move, piece):
+        self.board[move[0]][move[1]].set_piece(move[2], move[3], piece)
+        self.set_board_piece_if_won(move[0], move[1], piece)
+
     def get_piece(self, row, col):
         return self.board[row][col]
 
@@ -65,3 +69,14 @@ class BigBoard:
                 if not isinstance(self.board[iter_row][iter_col], SmallBoard):
                     won_squares.append([iter_row, iter_col])
         return won_squares
+
+    def hash(self):
+        board = self.board
+        return hash(board[0][0]) + hash(board[0][1]) + hash(board[0][2]) + hash(board[1][0]) + hash(board[1][1]) + \
+            hash(board[1][2]) + hash(board[2][0]) + hash(board[2][1]) + hash(board[2][2])
+
+    def get_hash_of_next_move(self, move, piece):
+        self.board[move[0]][move[1]].set_piece(move[2], move[3], piece)
+        hash = self.hash()
+        self.board[move[0]][move[1]].set_piece(move[2], move[3], NO_PIECE)
+
