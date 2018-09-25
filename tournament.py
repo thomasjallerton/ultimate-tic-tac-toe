@@ -17,7 +17,7 @@ if __name__ == '__main__':
     ties = 0
 
     for i in range(100):
-        winner = play_game(random_make_move, monte_carlo_make_move, True)
+        winner = play_game(minimax_heuristic_make_move, human_player, True)
         if winner == O_PIECE:
             o_count += 1
             winner_str = "O won!"
